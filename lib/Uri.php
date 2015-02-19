@@ -712,7 +712,7 @@ class Uri
      * @return string
      * @internal
      */
-    static private function code2utf($num)
+    private static function code2utf($num)
     {
         if ($num < 128) {
             return chr($num);

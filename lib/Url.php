@@ -209,7 +209,7 @@ class Url extends Uri implements UriInterface
     public function pushQueryValues(array $values)
     {
         if ($this->query !== null) {
-            @parse_str($this->query, $data);
+            parse_str($this->query, $data);
         } else {
             $data = [];
         }
