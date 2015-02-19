@@ -1,0 +1,39 @@
+{
+    "name": "webmaniacs.net/lib-uri",
+    "description": "Represents a Uniform Resource Identifier (URI), Uniform Resource Locator (URL) and File Resource references. RFC 2396, RFC 2732 compatible",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Stas Dovgodko",
+            "email": "stas.dovgodko@webmaniacs.net"
+        }
+    ],
+    "version": "0.1",
+    "keywords": [
+        "URI",
+        "http",
+        "URL",
+        "RFC-2396",
+        "RFC-2732"
+    ],
+
+    "autoload": {
+        "psr-4": {
+            "wmlib\\uri\\": "lib/"
+        }
+    },
+
+    "require-dev": {
+        "phpunit/phpunit": "~4.0"
+    },
+
+    "require": {
+        "psr/http-message": "~1.0"
+    },
+
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0.x-dev"
+        }
+    }
+}
