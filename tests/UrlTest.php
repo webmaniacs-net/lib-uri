@@ -10,7 +10,8 @@ namespace wmlib\uri\Tests;
 
 use wmlib\uri\Url;
 
-class UrlTest extends \PHPUnit_Framework_TestCase {
+class UrlTest extends \PHPUnit_Framework_TestCase
+{
 
     public function testAbs()
     {

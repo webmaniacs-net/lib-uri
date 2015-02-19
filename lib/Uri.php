@@ -1,5 +1,6 @@
 <?php
 namespace wmlib\uri;
+
 use wmlib\uri\Exception\SyntaxException;
 
 /**
@@ -42,7 +43,9 @@ class Uri
     public function __construct($uri)
     {
         $this->token = $uri;
-        if ($uri !== '') $this->init();
+        if ($uri !== '') {
+            $this->init();
+        }
     }
 
     /**
@@ -78,36 +81,35 @@ class Uri
     {
         $uri = $this->token;
         // check scheme
-        if (($pos = strpos($uri, ':')) !== false)
-        {
+        if (($pos = strpos($uri, ':')) !== false) {
             $this->scheme = substr($uri, 0, $pos);
             $rest = substr($uri, $pos + 1);
-        } else
+        } else {
             $rest = $uri;
+        }
         // check fragment
-        if (($pos = strrpos($rest, '#')) !== false)
-        {
+        if (($pos = strrpos($rest, '#')) !== false) {
             $this->fragment = substr($rest, $pos + 1);
             $rest = substr($rest, 0, $pos);
         }
         $this->schemeSpecificPart = $rest;
 
         // A hierarchical URI
-        if (($this->isAbsolute() && $this->schemeSpecificPart{0} == '/') || !$this->isAbsolute())
-        {
+        if (($this->isAbsolute() && $this->schemeSpecificPart{0} == '/') || !$this->isAbsolute()) {
             $parts = array();
-            if (preg_match('/^(\/\/([^\/]*))?(\/?[^\?]+)?(\?(.*?))?$/S', $this->schemeSpecificPart, $parts))
-            {
-                if (isset($parts[2]))
-                {
+            if (preg_match('/^(\/\/([^\/]*))?(\/?[^\?]+)?(\?(.*?))?$/S', $this->schemeSpecificPart, $parts)) {
+                if (isset($parts[2])) {
                     $this->setAuthority($parts[2]);
                 }
-                if (isset($parts[3]) && $parts[3])
+                if (isset($parts[3]) && $parts[3]) {
                     $this->path = $parts[3];
-                if (isset($parts[5]) && $parts[5])
+                }
+                if (isset($parts[5]) && $parts[5]) {
                     $this->query = $parts[5];
-            } else
+                }
+            } else {
                 throw new SyntaxException("Hierarchical URI scheme-specific part syntax error");
+            }
         }
 
         $this->hash = null;
@@ -146,22 +148,21 @@ class Uri
     {
         static $resolve = array();
 
-        return (isset($resolve[$hash = $this->hashCode().$uri->hashCode()])) ? $resolve[$hash] : ($resolve[$hash] = $this->createResolve($uri));
+        return (isset($resolve[$hash = $this->hashCode() . $uri->hashCode()])) ? $resolve[$hash] : ($resolve[$hash] = $this->createResolve($uri));
     }
 
     private function createResolve(self $uri)
     {
-        if ($uri->isAbsolute() || $this->isOpaque())
+        if ($uri->isAbsolute() || $this->isOpaque()) {
             return clone $uri;
-        if ($uri->scheme == null && $uri->authority == null && $uri->path == '' && $uri->fragment && !$uri->query)
-        {
-            if ($this->fragment != null && $uri->fragment == $this->fragment)
-            {
+        }
+        if ($uri->scheme == null && $uri->authority == null && $uri->path == '' && $uri->fragment && !$uri->query) {
+            if ($this->fragment != null && $uri->fragment == $this->fragment) {
                 return clone $this;
-            } else
-            {
+            } else {
                 $class = get_called_class();
-                $uri2 = new $class(''); /** @var $uri2 Uri */
+                $uri2 = new $class('');
+                /** @var $uri2 Uri */
                 $uri2->scheme = $this->scheme;
                 $uri2->schemeSpecificPart = $this->schemeSpecificPart;
                 $uri2->setAuthority($this->authority);
@@ -173,34 +174,29 @@ class Uri
                 return $uri2;
             }
         }
-        if ($uri->scheme)
-        {
+        if ($uri->scheme) {
             return clone $uri;
         }
         $class = get_called_class();
-        $uri2 = new $class(''); /** @var $uri2 Uri */
+        $uri2 = new $class('');
+        /** @var $uri2 Uri */
         $uri2->scheme = $this->scheme;
         $uri2->query = $uri->query;
         $uri2->fragment = $uri->fragment;
-        if (!$uri->authority)
-        {
+        if (!$uri->authority) {
             $uri2->setAuthority($this->authority);
 
-            if (strlen($uri->path) > 0 && substr($uri->path, 0, 1) == '/')
-            {
+            if (strlen($uri->path) > 0 && substr($uri->path, 0, 1) == '/') {
                 $uri2->path = $uri->path;
-            } else
-            {
+            } else {
                 $pos = strrpos($this->path, '/');
-                $s2 = ($pos !== false)?substr($this->path, 0, $pos + 1):'';
-                if (strlen($uri->path) != 0)
-                {
+                $s2 = ($pos !== false) ? substr($this->path, 0, $pos + 1) : '';
+                if (strlen($uri->path) != 0) {
                     $s2 .= $uri->path;
                 }
                 $uri2->path = self::normalizePath($s2);
             }
-        } else
-        {
+        } else {
             $uri2->setAuthority($uri->authority);
             $uri2->path = $uri->path;
         }
@@ -230,16 +226,16 @@ class Uri
      */
     public function normalize()
     {
-        if ($this->isOpaque() || !$this->path)
+        if ($this->isOpaque() || !$this->path) {
             return clone $this;
+        }
         $s = self::normalizePath($this->path);
-        if ($s == $this->path)
-        {
+        if ($s == $this->path) {
             return clone $this;
-        } else
-        {
+        } else {
             $class = get_called_class();
-            $uri = new $class(''); /** @var $uri Uri */
+            $uri = new $class('');
+            /** @var $uri Uri */
             $uri->scheme = $this->scheme;
             $uri->fragment = $this->fragment;
             $uri->setAuthority($this->authority);
@@ -261,14 +257,17 @@ class Uri
     private static function normalizePath($s)
     {
         $i = self::needsNormalization($s);
-        if ($i === false)
+        if ($i === false) {
             return $s;
+        }
         $ac = array();
-        for ($c = 0, $l = strlen($s); $c < $l; $c++)
+        for ($c = 0, $l = strlen($s); $c < $l; $c++) {
             $ac[] = substr($s, $c, 1);
+        }
         $ai = array();
-        for ($c = 0; $c < $i; $c++)
+        for ($c = 0; $c < $i; $c++) {
             $ai[] = 0;
+        }
         self::split($ac, $ai);
         self::removeDots($ac, $ai);
         $i = self::join($ac, $ai);
@@ -285,30 +284,32 @@ class Uri
     private static function needsNormalization($s)
     {
         $j = strlen($s) - 1;
-        for ($k = 0; $k <= $j && substr($s, $k, 1) === '/'; $k++);
-        $flag = ($k > 1)?false:true;
+        for ($k = 0; $k <= $j && substr($s, $k, 1) === '/'; $k++) {
+            ;
+        }
+        $flag = ($k > 1) ? false : true;
         $i = 0;
-        do
-        {
-            if ($k > $j)
+        do {
+            if ($k > $j) {
                 break;
-            if (substr($s, $k, 1) === '.' && ($k == $j || substr($s, $k + 1, 1) === '/' || substr($s, $k + 1, 1) === '.' && ($k + 1 == $j || substr($s, $k + 2, 1) === '/')))
-            {
+            }
+            if (substr($s, $k, 1) === '.' && ($k == $j || substr($s, $k + 1, 1) === '/' || substr($s, $k + 1,
+                        1) === '.' && ($k + 1 == $j || substr($s, $k + 2, 1) === '/'))
+            ) {
                 $flag = false;
             }
             $i++;
-            do
-            {
-                if ($k > $j)
+            do {
+                if ($k > $j) {
                     continue 2;
+                }
             } while (substr($s, $k++, 1) !== '/');
-            while ($k <= $j && substr($s, $k, 1) === '/')
-            {
+            while ($k <= $j && substr($s, $k, 1) === '/') {
                 $flag = false;
                 $k++;
             }
         } while (true);
-        return $flag?false:$i;
+        return $flag ? false : $i;
     }
 
     /**
@@ -320,30 +321,34 @@ class Uri
      */
     private static function join(&$ac, $ai)
     {
-        $i = sizeof($ai);
-        $j = sizeof($ac) - 1;
+        $i = count($ai);
+        $j = count($ac) - 1;
         $k = 0;
-        if ($ac[$k] == '')
+        if ($ac[$k] == '') {
             $ac[$k++] = '/';
-        for ($l = 0; $l < $i; $l++)
-        {
+        }
+        for ($l = 0; $l < $i; $l++) {
             $i1 = $ai[$l];
-            if ($i1 == -1)
-                continue;
-            if ($k == $i1)
-            {
-                for (; $k <= $j && $ac[$k] != ''; $k++);
-                if ($k <= $j)
-                    $ac[$k++] = '/';
+            if ($i1 == -1) {
                 continue;
             }
-            if ($k < $i1)
-            {
-                for (; $i1 <= $j && $ac[$i1] != ''; $ac[$k++] = $ac[$i1++]);
-                if ($i1 <= $j)
+            if ($k == $i1) {
+                for (; $k <= $j && $ac[$k] != ''; $k++) {
+                    ;
+                }
+                if ($k <= $j) {
                     $ac[$k++] = '/';
-            } else
-            {
+                }
+                continue;
+            }
+            if ($k < $i1) {
+                for (; $i1 <= $j && $ac[$i1] != ''; $ac[$k++] = $ac[$i1++]) {
+                    ;
+                }
+                if ($i1 <= $j) {
+                    $ac[$k++] = '/';
+                }
+            } else {
                 user_error('Internal error');
             }
         }
@@ -359,29 +364,32 @@ class Uri
      */
     private static function split(&$ac, &$ai)
     {
-        $i = sizeof($ac) - 1;
+        $i = count($ac) - 1;
         $j = 0;
         $k = 0;
-        for (; $j <= $i and $ac[$j] == '/'; $j++)
+        for (; $j <= $i && $ac[$j] == '/'; $j++) {
             $ac[$j] = '';
-        do
-        {
-            if ($j > $i)
+        }
+        do {
+            if ($j > $i) {
                 break;
+            }
             $ai[$k++] = $j++;
-            do
-            {
-                if ($j > $i)
+            do {
+                if ($j > $i) {
                     continue 2;
+                }
             } while ($ac[$j++] != '/');
             $ac[$j - 1] = '';
-            while ($j <= $i && $ac[$j] == '/')
+            while ($j <= $i && $ac[$j] == '/') {
                 $ac[$j++] = '';
+            }
         } while (true);
-        if ($k != sizeof($ai))
+        if ($k != count($ai)) {
             user_error('Internal error');
-        else
+        } else {
             return;
+        }
     }
 
     /**
@@ -393,60 +401,61 @@ class Uri
      */
     private static function removeDots(&$ac, &$ai)
     {
-        $i = sizeof($ai);
-        $j = sizeof($ac) - 1;
-        for ($k = 0; $k < $i; $k++)
-        {
+        $i = count($ai);
+        $j = count($ac) - 1;
+        for ($k = 0; $k < $i; $k++) {
             $byte0 = 0;
-            do
-            {
+            do {
                 $l = $ai[$k];
-                if ($ac[$l] !== '.')
+                if ($ac[$l] !== '.') {
                     continue;
-                if ($l == $j)
-                {
+                }
+                if ($l == $j) {
                     $byte0 = 1;
                     break;
                 }
-                if ($ac[$l + 1] === '')
-                {
+                if ($ac[$l + 1] === '') {
                     $byte0 = 1;
                     break;
                 }
-                if ($ac[$l + 1] !== '.' || $l + 1 != $j && $ac[$l + 2] !== '')
+                if ($ac[$l + 1] !== '.' || $l + 1 != $j && $ac[$l + 2] !== '') {
                     continue;
+                }
                 $byte0 = 2;
                 break;
             } while (++$k < $i);
-            if ($k > $i || $byte0 === 0)
+            if ($k > $i || $byte0 === 0) {
                 break;
-            if ($byte0 === 1)
-            {
+            }
+            if ($byte0 === 1) {
                 $ai[$k] = -1;
                 continue;
             }
             //$i1;
-            for ($i1 = $k - 1; $i1 >= 0 && $ai[$i1] === -1; $i1--);
-            if ($i1 >= 0)
-            {
+            for ($i1 = $k - 1; $i1 >= 0 && $ai[$i1] === -1; $i1--) {
+                ;
+            }
+            if ($i1 >= 0) {
                 $j1 = $ai[$i1];
-                if ($ac[$j1] !== '.' || $ac[$j1 + 1] !== '.' || $ac[$j1 + 2] !== '')
-                {
+                if ($ac[$j1] !== '.' || $ac[$j1 + 1] !== '.' || $ac[$j1 + 2] !== '') {
                     $ai[$k] = -1;
                     $ai[$i1] = -1;
                 }
             }
         }
         // maybeAddLeadingDot() implantation
-        if ($ac[0] !== '')
-        {
-            $i = sizeof($ai);
-            for ($j = 0; $j < $i && $ai[$j] < 0; $j++);
-            if ($j >= $i || $j == 0)
+        if ($ac[0] !== '') {
+            $i = count($ai);
+            for ($j = 0; $j < $i && $ai[$j] < 0; $j++) {
+                ;
+            }
+            if ($j >= $i || $j == 0) {
                 return;
-            for ($k = $ai[$j]; $k < sizeof($ac) && $ac[$k] !== ':' && $ac[$k] !== ''; $k++);
-            if ($k < sizeof($ac) && $ac[$k] !== '')
-            {
+            }
+            for ($k = $ai[$j]; $k < count($ac) && $ac[$k] !== ':' && $ac[$k] !== ''; $k++) {
+                ;
+            }
+            if ($k < count($ac) && $ac[$k] !== '') {
                 $ac[0] = '.';
                 $ac[1] = '';
                 $ai[0] = 0;
@@ -456,9 +465,8 @@ class Uri
 
     private function hashCode()
     {
-        if ($this->hash === null)
-        {
-            $this->hash = ($this->scheme.$this->authority.$this->fragment.$this->path.$this->query);
+        if ($this->hash === null) {
+            $this->hash = ($this->scheme . $this->authority . $this->fragment . $this->path . $this->query);
         }
 
         return $this->hash;
@@ -491,24 +499,26 @@ class Uri
      */
     protected function buildStr()
     {
-        $uri = ($this->scheme != null)?($this->scheme . ':'):'';
-        if ($this->isOpaque())
-        {
+        $uri = ($this->scheme != null) ? ($this->scheme . ':') : '';
+        if ($this->isOpaque()) {
             $uri .= $this->schemeSpecificPart;
-        } else
-        {
+        } else {
 
-            if ($this->scheme)
+            if ($this->scheme) {
                 $uri .= '//' . $this->authority;
-            else
+            } else {
                 $uri .= $this->authority;
-            if ($this->path !== null)
+            }
+            if ($this->path !== null) {
                 $uri .= $this->path;
-            if ($this->query !== null)
+            }
+            if ($this->query !== null) {
                 $uri .= '?' . $this->query;
+            }
         }
-        if ($this->fragment !== null)
+        if ($this->fragment !== null) {
             $uri .= '#' . $this->fragment;
+        }
         return $uri;
     }
 
@@ -520,8 +530,9 @@ class Uri
     public function getAuthority()
     {
         static $decoded;
-        if ($decoded === null && $this->authority !== null)
+        if ($decoded === null && $this->authority !== null) {
             $decoded = $this->decode($this->authority);
+        }
         return $decoded;
     }
 
@@ -548,11 +559,11 @@ class Uri
     public function getFragment()
     {
         static $decoded;
-        if ($decoded === null && $this->fragment !== null)
+        if ($decoded === null && $this->fragment !== null) {
             $decoded = $this->decode($this->fragment);
+        }
         return $decoded;
     }
-
 
 
     /**
@@ -566,7 +577,6 @@ class Uri
     }
 
 
-
     /**
      * Returns the decoded query component of this URI.
      *
@@ -576,7 +586,6 @@ class Uri
     {
         return $this->decode($this->query);
     }
-
 
 
     /**
@@ -631,7 +640,6 @@ class Uri
     }
 
 
-
     /**
      * Tells whether or not this URI is absolute.
      *
@@ -666,37 +674,30 @@ class Uri
         $strOut = '';
         $iPos = 0;
         $len = strlen($strIn);
-        while ($iPos < $len)
-        {
+        while ($iPos < $len) {
             $charAt = substr($strIn, $iPos, 1);
-            if ($charAt == '%')
-            {
+            if ($charAt == '%') {
                 $iPos++;
                 $charAt = substr($strIn, $iPos, 1);
-                if ($charAt == 'u')
-                {
+                if ($charAt == 'u') {
                     // Unicode character
                     $iPos++;
                     $unicodeHexVal = substr($strIn, $iPos, 4);
                     $unicode = hexdec($unicodeHexVal);
                     $strOut .= self::code2utf($unicode);
                     $iPos += 4;
-                } else
-                {
+                } else {
                     // Escaped ascii character
                     $hexVal = substr($strIn, $iPos, 2);
-                    if (hexdec($hexVal) > 127)
-                    {
+                    if (hexdec($hexVal) > 127) {
                         // Convert to Unicode
                         $strOut .= self::code2utf(hexdec($hexVal));
-                    } else
-                    {
+                    } else {
                         $strOut .= chr(hexdec($hexVal));
                     }
                     $iPos += 2;
                 }
-            } else
-            {
+            } else {
                 $strOut .= $charAt;
                 $iPos++;
             }
@@ -713,22 +714,25 @@ class Uri
      */
     static private function code2utf($num)
     {
-        if ($num < 128)
+        if ($num < 128) {
             return chr($num);
-        if ($num < 1024)
+        }
+        if ($num < 1024) {
             return chr(($num >> 6) + 192) . chr(($num & 63) + 128);
-        if ($num < 32768)
+        }
+        if ($num < 32768) {
             return chr(($num >> 12) + 224) . chr((($num >> 6) & 63) + 128) . chr(($num & 63) + 128);
-        if ($num < 2097152)
+        }
+        if ($num < 2097152) {
             return chr(($num >> 18) + 240) . chr((($num >> 12) & 63) + 128) . chr((($num >> 6) & 63) + 128) . chr(($num & 63) + 128);
+        }
         return '';
     }
 
     public function getRelated(Uri $baseUrl)
     {
         $path = $baseUrl->getPath();
-        if (substr($this->getPath(), 0, strlen($path)) == $path)
-        {
+        if (substr($this->getPath(), 0, strlen($path)) == $path) {
             $class = get_called_class();
             $uri = new $class('');
             $uri->fragment = $this->fragment;

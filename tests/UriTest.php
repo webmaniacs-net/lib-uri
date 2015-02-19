@@ -10,7 +10,8 @@ namespace wmlib\uri\Tests;
 
 use wmlib\uri\Uri;
 
-class UriTest extends \PHPUnit_Framework_TestCase {
+class UriTest extends \PHPUnit_Framework_TestCase
+{
 
     public function testUrn()
     {

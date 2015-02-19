@@ -1,5 +1,6 @@
 <?php
 namespace wmlib\uri;
+
 use wmlib\uri\Exception\SyntaxException;
 use Psr\Http\Message\UriInterface;
 
@@ -34,14 +35,18 @@ class Url extends Uri implements UriInterface
         if (preg_match('/^(([^\@]+)\@)?(.*?)(\:(.+))?$/S', $authority, $aparts)) {
             parent::setAuthority($authority);
 
-            if (isset($aparts[2]) && $aparts[2])
+            if (isset($aparts[2]) && $aparts[2]) {
                 $this->userInfo = $aparts[2];
-            if (isset($aparts[3]) && $aparts[3])
+            }
+            if (isset($aparts[3]) && $aparts[3]) {
                 $this->host = $aparts[3];
-            if (isset($aparts[5]) && $aparts[5])
+            }
+            if (isset($aparts[5]) && $aparts[5]) {
                 $this->port = (int)$aparts[5];
-        } else
+            }
+        } else {
             throw new SyntaxException("Hierarchical URL authority part syntax error");
+        }
 
         return $this;
     }
@@ -117,8 +122,9 @@ class Url extends Uri implements UriInterface
     public function getUserInfo()
     {
         static $decoded;
-        if ($decoded === null && $this->userInfo !== null)
+        if ($decoded === null && $this->userInfo !== null) {
             $decoded = $this->decode($this->userInfo);
+        }
         return $decoded;
     }
 
@@ -133,37 +139,44 @@ class Url extends Uri implements UriInterface
      */
     protected function buildStr()
     {
-        $uri = ($this->scheme != null)?($this->scheme . ':'):'';
-        if ($this->isOpaque())
-        {
+        $uri = ($this->scheme != null) ? ($this->scheme . ':') : '';
+        if ($this->isOpaque()) {
             $uri .= $this->schemeSpecificPart;
-        } else
-        {
-            if ($this->host != null)
-            {
+        } else {
+            if ($this->host != null) {
                 $uri .= '//';
-                if ($this->userInfo != null)
+                if ($this->userInfo != null) {
                     $uri .= $this->userInfo . '@';
-                $flag = (strpos($this->host, ':') !== false) && !(substr($this->host, 0, 1) == '[') && !(substr($this->host, -1) == ']');
-                if ($flag)
+                }
+                $flag = (strpos($this->host, ':') !== false) && !(substr($this->host, 0,
+                            1) == '[') && !(substr($this->host, -1) == ']');
+                if ($flag) {
                     $uri .= '[';
+                }
                 $uri .= $this->host;
-                if ($flag)
+                if ($flag) {
                     $uri .= ']';
-                if ($this->port != null)
+                }
+                if ($this->port != null) {
                     $uri .= ':' . $this->port;
-            } else
-                if ($this->scheme)
+                }
+            } else {
+                if ($this->scheme) {
                     $uri .= '//' . $this->authority;
-                else
+                } else {
                     $uri .= $this->authority;
-            if ($this->path !== null)
+                }
+            }
+            if ($this->path !== null) {
                 $uri .= $this->path;
-            if ($this->query !== null)
+            }
+            if ($this->query !== null) {
                 $uri .= '?' . $this->query;
+            }
         }
-        if ($this->fragment !== null)
+        if ($this->fragment !== null) {
             $uri .= '#' . $this->fragment;
+        }
         return $uri;
     }
 
@@ -249,7 +262,7 @@ class Url extends Uri implements UriInterface
     public function withUserInfo($user, $password = null)
     {
         $url = clone $this;
-        $url->userInfo = $user . ($password?(':'.$password):'');
+        $url->userInfo = $user . ($password ? (':' . $password) : '');
 
         return $url;
     }

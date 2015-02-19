@@ -1,5 +1,6 @@
 <?php
 namespace wmlib\uri;
+
 use wmlib\uri\Exception\SyntaxException;
 
 /**
@@ -23,8 +24,7 @@ class File extends Uri
     public function __construct($uri)
     {
         // check for file scheme root
-        if (($pos = strpos($uri, ':')) === 1 && strstr(strtoupper(php_uname()), "WIN"))
-        {
+        if (($pos = strpos($uri, ':')) === 1 && strstr(strtoupper(php_uname()), "WIN")) {
             $uri = 'file:///' . $uri{0} . '%3A' . str_replace(DIRECTORY_SEPARATOR, '/', substr($uri, 2));
         } else {
             $uri = 'file://' . $uri;
@@ -45,8 +45,7 @@ class File extends Uri
     protected function buildStr()
     {
         $filename = urldecode($this->getPath());
-        if ($filename{0} === '/' && strstr(strtoupper(php_uname()), "WIN"))
-        {
+        if ($filename{0} === '/' && strstr(strtoupper(php_uname()), "WIN")) {
             $filename = substr($filename, 1);
         }
         return str_replace('/', DIRECTORY_SEPARATOR, $filename);
