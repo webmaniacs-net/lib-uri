@@ -53,6 +53,15 @@ class UrlTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('http://user:password@example.com/path2?k=v2#fragment2', (string)$resolved);
     }
 
+    public function testResolveFragment()
+    {
+        $base = new Url('http://user:password@example.com/path/path2?k=v#fragment');
+        $uri = new Url('#fragment2');
+        $resolved = $base->resolve($uri);
+
+        $this->assertEquals('http://user:password@example.com/path/path2?k=v#fragment2', (string)$resolved);
+    }
+
     public function testAbsString()
     {
         $base = new Url('http://user:password@example.com/path/path2?k=v#fragment');
@@ -65,5 +74,13 @@ class UrlTest extends \PHPUnit_Framework_TestCase
         $base = new Url('/path/path2?k=v#fragment');
 
         $this->assertEquals('/path/path2?k=v#fragment', $base->__toString());
+    }
+
+    public function testNormalize()
+    {
+        $base = new Url('http://user:password@example.com/./path/../path3/path2?k=v#fragment');
+        $base = $base->normalize();
+
+        $this->assertEquals('http://user:password@example.com/path3/path2?k=v#fragment', $base->__toString());
     }
 }

@@ -141,8 +141,8 @@ class Uri
      *
      *   - The result of this method is absolute if, and only if, either this URI is absolute or the given URI is absolute
      *
-     * @param self $uri The URI to be resolved against this URI
-     * @return self The resulting URI
+     * @param Uri $uri The URI to be resolved against this URI
+     * @return Uri The resulting URI
      */
     public function resolve(self $uri)
     {
@@ -222,7 +222,7 @@ class Uri
      * A normalized path will begin with one or more ".." segments if there were insufficient non-".." segments preceding them to allow their removal.
      * A normalized path will begin with a "." segment if one was inserted by step 3 above. Otherwise, a normalized path will not contain any "." or ".." segments
      *
-     * @return self A URI equivalent to this URI, but whose path is in normal form.
+     * @return Uri A URI equivalent to this URI, but whose path is in normal form.
      */
     public function normalize()
     {
@@ -268,7 +268,11 @@ class Uri
         for ($c = 0; $c < $i; $c++) {
             $ai[] = 0;
         }
-        self::split($ac, $ai);
+        try {
+            self::split($ac, $ai);
+        } catch (\OutOfBoundsException $e) {
+            // something strange here )
+        }
         self::removeDots($ac, $ai);
         $i = self::join($ac, $ai);
         return implode('', array_slice($ac, 0, $i));
@@ -318,6 +322,7 @@ class Uri
      * @param array $ac
      * @param array $ai
      * @internal
+     * @return int
      */
     private static function join(&$ac, $ai)
     {
@@ -358,6 +363,7 @@ class Uri
     /**
      * JRE1.5 Port
      *
+     * @throws \OutOfBoundsException
      * @param array $ac
      * @param array $ai
      * @internal
@@ -385,10 +391,9 @@ class Uri
                 $ac[$j++] = '';
             }
         } while (true);
+
         if ($k != count($ai)) {
-            user_error('Internal error');
-        } else {
-            return;
+            throw new \OutOfBoundsException('Internal error');
         }
     }
 
@@ -409,23 +414,20 @@ class Uri
             $byte0 = 0;
             do {
                 $l = $ai[$k];
-                if ($ac[$l] !== '.') {
-                    continue;
+                if ($ac[$l] === '.') {
+
+                    if (($l == $j) || ($ac[$l + 1] === '')) {
+                        $byte0 = 1;
+                        break;
+                    }
+
+                    if ($ac[$l + 1] === '.' && $l + 1 == $j || $ac[$l + 2] === '') {
+                        $byte0 = 2;
+                        break;
+                    }
                 }
-                if ($l == $j) {
-                    $byte0 = 1;
-                    break;
-                }
-                if ($ac[$l + 1] === '') {
-                    $byte0 = 1;
-                    break;
-                }
-                if ($ac[$l + 1] !== '.' || $l + 1 != $j && $ac[$l + 2] !== '') {
-                    continue;
-                }
-                $byte0 = 2;
-                break;
             } while (++$k < $i);
+
             if ($k > $i || $byte0 === 0) {
                 break;
             }
