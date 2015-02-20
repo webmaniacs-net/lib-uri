@@ -1,7 +1,6 @@
 <?php
 namespace wmlib\uri;
 
-use wmlib\uri\Exception\SyntaxException;
 
 /**
  * Represents a Uniform Resource Identifier (URI) reference.

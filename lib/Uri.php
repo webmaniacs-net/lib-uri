@@ -1,7 +1,7 @@
 <?php
 namespace wmlib\uri;
 
-use wmlib\uri\Exception\SyntaxException;
+use Psr\Http\Message\UriInterface;
 
 /**
  * Represents a Uniform Resource Identifier (URI) reference.
@@ -13,7 +13,7 @@ use wmlib\uri\Exception\SyntaxException;
  * Instances of this class are immutable.
  *
  */
-class Uri
+class Uri implements UriInterface
 {
 
     protected $scheme;
@@ -34,6 +34,12 @@ class Uri
     protected $token;
 
     protected $hash;
+
+    protected $userInfo;
+
+    protected $host;
+
+    protected $port;
 
     /**
      * Public constructor
@@ -75,7 +81,7 @@ class Uri
      *  - Characters in the other category are permitted wherever RFC 2396 permits escaped octets, that is, in the user-information, path, query, and fragment components,
      * as well as in the authority component if the authority is registry-based. This allows URIs to contain Unicode characters beyond those in the US-ASCII character set.
      *
-     * @throws SyntaxException If the given string violates RFC 2396, as augmented by the above deviations.
+     * @throws \DomainException If the given string violates RFC 2396, as augmented by the above deviations.
      */
     protected function init()
     {
@@ -108,7 +114,7 @@ class Uri
                     $this->query = $parts[5];
                 }
             } else {
-                throw new SyntaxException("Hierarchical URI scheme-specific part syntax error");
+                throw new \DomainException("Hierarchical URI scheme-specific part syntax error");
             }
         }
 
@@ -144,14 +150,14 @@ class Uri
      * @param Uri $uri The URI to be resolved against this URI
      * @return Uri The resulting URI
      */
-    public function resolve(self $uri)
+    public function resolve(Uri $uri)
     {
         static $resolve = array();
 
         return (isset($resolve[$hash = $this->hashCode() . $uri->hashCode()])) ? $resolve[$hash] : ($resolve[$hash] = $this->createResolve($uri));
     }
 
-    private function createResolve(self $uri)
+    private function createResolve(Uri $uri)
     {
         if ($uri->isAbsolute() || $this->isOpaque()) {
             return clone $uri;
@@ -165,7 +171,9 @@ class Uri
                 /** @var $uri2 Uri */
                 $uri2->scheme = $this->scheme;
                 $uri2->schemeSpecificPart = $this->schemeSpecificPart;
-                $uri2->setAuthority($this->authority);
+                if ($this->authority) {
+                    $uri2->setAuthority($this->authority);
+                }
 
                 $uri2->path = $this->path;
                 $uri2->fragment = $uri->fragment;
@@ -496,20 +504,6 @@ class Uri
         return (isset($str[$hash = $this->hashCode()])) ? $str[$hash] : ($str[$hash] = $this->buildStr());
     }
 
-    /**
-     * Returns the authority parts string of url
-     *
-     * @see buildStr()
-     * @return string
-     */
-    protected function buildAuthorityStr()
-    {
-        if ($this->scheme) {
-            return '//' . $this->authority;
-        } else {
-            return $this->authority;
-        }
-    }
 
     /**
      * Returns the content of this URI as a string.
@@ -556,13 +550,29 @@ class Uri
      * Set authority component of this URI.
      *
      * @param string $authority The decoded authority component of this URI, or null if the authority is undefined.
+     * @throws \DomainException
      * @return Uri
      */
-    public function setAuthority($authority)
+    protected function setAuthority($authority)
     {
-        $this->authority = $authority;
+        $aparts = [];
+        if (preg_match('/^(([^\@]+)\@)?(.*?)(\:(.+))?$/S', $authority, $aparts)) {
+            $this->authority = $authority;
 
-        $this->hash = null;
+            $this->hash = null;
+
+            if (isset($aparts[2]) && $aparts[2]) {
+                $this->userInfo = $aparts[2];
+            }
+            if (isset($aparts[3]) && $aparts[3]) {
+                $this->host = $aparts[3];
+            }
+            if (isset($aparts[5]) && $aparts[5]) {
+                $this->port = (int)$aparts[5];
+            }
+        } else {
+            throw new \DomainException("Hierarchical URL authority part syntax error");
+        }
 
         return $this;
     }
@@ -599,20 +609,6 @@ class Uri
         return urldecode($this->query);
     }
 
-
-    /**
-     * Sets the query component of this URI.
-     *
-     * @param string $query The query component of URI
-     */
-    public function setQuery($query)
-    {
-        $this->query = $query;
-
-        $this->hash = null;
-
-        return $this;
-    }
 
     /**
      * Returns the scheme component of this URI.
@@ -683,12 +679,12 @@ class Uri
      * Base: /path/
      * Return: path2?k=v#fragment
      *
-     * @param Uri $baseUrl Base url
+     * @param Uri $baseUri Base uri
      * @return $this
      */
-    public function getRelated(Uri $baseUrl)
+    public function getRelated(Uri $baseUri)
     {
-        $path = $baseUrl->getPath();
+        $path = $baseUri->getPath();
         if (substr($this->getPath(), 0, strlen($path)) == $path) {
             $class = get_called_class();
             $uri = new $class('');
@@ -698,5 +694,330 @@ class Uri
             return $uri;
         }
         return $this;
+    }
+
+    /**
+     * Returns the host component of this URI.
+     *
+     * The host component of a URI, if defined, will have one of the following forms:
+     *  - A domain name consisting of one or more labels separated by period characters ('.'),
+     *  optionally followed by a period character. Each label consists of alphanum characters as well as hyphen characters ('-'),
+     *  though hyphens never occur as the first or last characters in a label.
+     *  The rightmost label of a domain name consisting of two or more labels, begins with an alpha character.
+     *
+     *  - A dotted-quad IPv4 address of the form digit+.digit+.digit+.digit+, where no digit sequence is longer than three characters and no sequence has a value larger than 255
+     *
+     *  - An IPv6 address enclosed in square brackets ('[' and ']') and consisting of hexadecimal digits, colon characters (':'), and possibly an embedded IPv4 address.
+     *  The full syntax of IPv6 addresses is specified in RFC 2373: IPv6 Addressing Architecture.
+     *
+     * The host component of a URI cannot contain escaped octets, hence this method does not perform any decoding.
+     *
+     * @return string The host component of this URI, or null if the host is undefined
+     */
+    public function getHost()
+    {
+        return $this->host;
+    }
+
+    /**
+     * Returns the port number of this URI.
+     *
+     * @return string The port component of this URI, or null if the port is undefined
+     */
+    public function getPort()
+    {
+        return $this->port;
+    }
+
+    /**
+     * Returns the decoded user-information component of this URI.
+     *
+     * @return string The decoded user-information component of this URI, or null if the user information is undefined
+     */
+    public function getUserInfo()
+    {
+        return urldecode($this->userInfo);
+    }
+
+    /**
+     * Returns the authority parts string of url
+     *
+     * @see buildStr()
+     * @return string
+     */
+    protected function buildAuthorityStr()
+    {
+        if ($this->host != null) {
+            $authority = '//';
+            if ($this->userInfo != null) {
+                $authority .= $this->userInfo . '@';
+            }
+            $flag = (strpos($this->host, ':') !== false) && !(substr($this->host, 0,
+                        1) == '[') && !(substr($this->host, -1) == ']');
+            if ($flag) {
+                $authority .= '[';
+            }
+            $authority .= $this->host;
+            if ($flag) {
+                $authority .= ']';
+            }
+            if ($this->port != null) {
+                $authority .= ':' . $this->port;
+            }
+            return $authority;
+        } else {
+            if ($this->scheme) {
+                return '//' . $this->authority;
+            } else {
+                return $this->authority;
+            }
+        }
+    }
+
+    /**
+     * Push value to query encoded
+     *
+     * @param string $name
+     * @param string $value
+     * @return Uri
+     */
+    public function pushQueryValue($name, $value)
+    {
+        parse_str($this->query, $data);
+        $data[$name] = $value;
+
+        $this->query = http_build_query($data);
+
+        $this->hash = null;
+
+        return $this;
+    }
+
+
+    /**
+     * Push values to query encoded
+     *
+     * @param array $values
+     * @return Uri
+     */
+    public function pushQueryValues(array $values)
+    {
+        if ($this->query !== null) {
+            parse_str($this->query, $data);
+        } else {
+            $data = [];
+        }
+
+        $this->query = http_build_query($values + $data);
+
+        $this->hash = null;
+
+        return $this;
+    }
+
+    /**
+     * Create a new instance with the specified scheme.
+     *
+     * This method MUST retain the state of the current instance, and return
+     * a new instance that contains the specified scheme. If the scheme
+     * provided includes the "://" delimiter, it MUST be removed.
+     *
+     * Implementations SHOULD restrict values to "http", "https", or an empty
+     * string but MAY accommodate other schemes if required.
+     *
+     * An empty scheme is equivalent to removing the scheme.
+     *
+     * @param string $scheme The scheme to use with the new instance.
+     * @return self A new instance with the specified scheme.
+     * @throws \InvalidArgumentException for invalid or unsupported schemes.
+     */
+    public function withScheme($scheme)
+    {
+        $url = clone $this;
+        $url->setScheme($scheme);
+
+        return $url;
+    }
+
+    /**
+     * Create a new instance with the specified user information.
+     *
+     * This method MUST retain the state of the current instance, and return
+     * a new instance that contains the specified user information.
+     *
+     * Password is optional, but the user information MUST include the
+     * user; an empty string for the user is equivalent to removing user
+     * information.
+     *
+     * @param string $user User name to use for authority.
+     * @param null|string $password Password associated with $user.
+     * @return self A new instance with the specified user information.
+     */
+    public function withUserInfo($user, $password = null)
+    {
+        $url = clone $this;
+        $url->userInfo = $user . ($password ? (':' . $password) : '');
+
+        return $url;
+    }
+
+    /**
+     * Create a new instance with the specified host.
+     *
+     * This method MUST retain the state of the current instance, and return
+     * a new instance that contains the specified host.
+     *
+     * An empty host value is equivalent to removing the host.
+     *
+     * @param string $host Hostname to use with the new instance.
+     * @return self A new instance with the specified host.
+     * @throws \InvalidArgumentException for invalid hostnames.
+     */
+    public function withHost($host)
+    {
+        $url = clone $this;
+        $url->host = $host;
+
+        $url->hash = null;
+
+        return $url;
+    }
+
+    /**
+     * Create a new instance with the specified port.
+     *
+     * This method MUST retain the state of the current instance, and return
+     * a new instance that contains the specified port.
+     *
+     * Implementations MUST raise an exception for ports outside the
+     * established TCP and UDP port ranges.
+     *
+     * A null value provided for the port is equivalent to removing the port
+     * information.
+     *
+     * @param null|int $port Port to use with the new instance; a null value
+     *     removes the port information.
+     * @return self A new instance with the specified port.
+     * @throws \InvalidArgumentException for invalid ports.
+     */
+    public function withPort($port)
+    {
+        $url = clone $this;
+        $url->port = $port;
+        $url->hash = null;
+
+        return $url;
+    }
+
+    /**
+     * Create a new instance with the specified path.
+     *
+     * This method MUST retain the state of the current instance, and return
+     * a new instance that contains the specified path.
+     *
+     * The path MUST be prefixed with "/"; if not, the implementation MAY
+     * provide the prefix itself.
+     *
+     * An empty path value is equivalent to removing the path.
+     *
+     * @param string $path The path to use with the new instance.
+     * @return self A new instance with the specified path.
+     * @throws \InvalidArgumentException for invalid paths.
+     */
+    public function withPath($path)
+    {
+        $url = clone $this;
+        $url->path = $path;
+
+        return $url;
+    }
+
+    /**
+     * Create a new instance with the specified query string.
+     *
+     * This method MUST retain the state of the current instance, and return
+     * a new instance that contains the specified query string.
+     *
+     * If the query string is prefixed by "?", that character MUST be removed.
+     * Additionally, the query string SHOULD be parseable by parse_str() in
+     * order to be valid.
+     *
+     * An empty query string value is equivalent to removing the query string.
+     *
+     * @param string $query The query string to use with the new instance.
+     * @return self A new instance with the specified query string.
+     * @throws \InvalidArgumentException for invalid query strings.
+     */
+    public function withQuery($query)
+    {
+        $url = clone $this;
+        $url->query = $query;
+        $url->hash = null;
+
+        return $url;
+    }
+
+    /**
+     * Create a new instance with the specified URI fragment.
+     *
+     * This method MUST retain the state of the current instance, and return
+     * a new instance that contains the specified URI fragment.
+     *
+     * If the fragment is prefixed by "#", that character MUST be removed.
+     *
+     * An empty fragment value is equivalent to removing the fragment.
+     *
+     * @param string $fragment The URI fragment to use with the new instance.
+     * @return self A new instance with the specified URI fragment.
+     */
+    public function withFragment($fragment)
+    {
+        $url = clone $this;
+        $url->fragment = $fragment;
+
+        return $url;
+    }
+
+    /**
+     * Indicate whether the URI is in origin-form.
+     *
+     * Origin-form is a URI that includes only the path, and optionally the
+     * query string.
+     *
+     * @link http://tools.ietf.org/html/rfc7230#section-5.3.1
+     * @return bool
+     */
+    public function isOrigin()
+    {
+        return (!$this->scheme && $this->getAuthority());
+    }
+
+    /**
+     * Indicate whether the instance represents an authority-form request
+     * target.
+     *
+     * An authority-form request-target contains ONLY the authority information.
+     *
+     * @see getAuthority()
+     * @link http://tools.ietf.org/html/rfc7230#section-5.3.3
+     * @return bool
+     */
+    public function isAuthority()
+    {
+        return (!$this->scheme && !$this->query && !$this->fragment && $this->getAuthority());
+    }
+
+    /**
+     * Indicate whether the instance represents an asterisk-form request
+     * target.
+     *
+     * An asterisk-form request-target will contain ONLY the string "*".
+     *
+     * @link http://tools.ietf.org/html/rfc7230#section-5.3.4
+     * @return bool
+     */
+    public function isAsterisk()
+    {
+        return ($this->__toString() === '*');
     }
 }
