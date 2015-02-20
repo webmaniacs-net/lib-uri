@@ -268,6 +268,8 @@ class Uri
                 // something strange here )
             }
             self::removeDots($ac, $ai);
+            self::leadingDots($ac, $ai);
+
             $i = self::join($ac, $ai);
             return implode('', array_slice($ac, 0, $i));
         } else {
@@ -290,12 +292,12 @@ class Uri
         }
         $flag = ($k > 1) ? false : true;
         $i = 0;
-        do {
-            if ($k > $j) {
-                break;
-            }
-            if (substr($s, $k, 1) === '.' && ($k == $j || substr($s, $k + 1, 1) === '/' || substr($s, $k + 1,
-                        1) === '.' && ($k + 1 == $j || substr($s, $k + 2, 1) === '/'))
+        while ($k <= $j) {
+            $c = substr($s, $k, 1);
+            $c2 = substr($s, $k + 1, 1);
+            $c3 = substr($s, $k + 2, 1);
+
+            if ($c === '.' && ($k == $j || $c2 === '/' || $c2 === '.' && ($k + 1 == $j || $c3 === '/'))
             ) {
                 $flag = false;
             }
@@ -309,7 +311,8 @@ class Uri
                 $flag = false;
                 $k++;
             }
-        } while (true);
+        }
+
         return $flag ? false : $i;
     }
 
@@ -444,7 +447,11 @@ class Uri
                 }
             }
         }
-        // maybeAddLeadingDot() implantation
+
+    }
+
+    private static function leadingDots(&$ac, &$ai)
+    {
         if ($ac[0] !== '') {
             $i = count($ai);
             for ($j = 0; $j < $i && $ai[$j] < 0; $j++) {
