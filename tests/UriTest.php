@@ -20,4 +20,6 @@ class UriTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('oasis:names:specification:docbook:dtd:xml:4.1.2', $uri->getSchemeSpecificPart());
         $this->assertEquals(true, $uri->isAbsolute());
     }
+
+
 }

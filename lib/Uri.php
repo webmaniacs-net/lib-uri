@@ -395,6 +395,8 @@ class Uri
     /**
      * JRE1.5 Port
      *
+     *
+     * @todo REFACTOR
      * @param array $ac
      * @param array $ai
      * @internal
@@ -489,6 +491,21 @@ class Uri
     }
 
     /**
+     * Returns the authority parts string of url
+     *
+     * @see buildStr()
+     * @return string
+     */
+    protected function buildAuthorityStr()
+    {
+        if ($this->scheme) {
+            return '//' . $this->authority;
+        } else {
+            return $this->authority;
+        }
+    }
+
+    /**
      * Returns the content of this URI as a string.
      *
      * This URI was created by normalization, resolution, or relativization,
@@ -504,11 +521,8 @@ class Uri
             $uri .= $this->schemeSpecificPart;
         } else {
 
-            if ($this->scheme) {
-                $uri .= '//' . $this->authority;
-            } else {
-                $uri .= $this->authority;
-            }
+            $uri .= $this->buildAuthorityStr();
+
             if ($this->path !== null) {
                 $uri .= $this->path;
             }

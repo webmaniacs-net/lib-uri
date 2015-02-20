@@ -129,55 +129,34 @@ class Url extends Uri implements UriInterface
     }
 
     /**
-     * Returns the content of this URI as a string.
+     * Returns the authority parts string of url
      *
-     * This URI was created by normalization, resolution, or relativization,
-     * and so a string is constructed from this URI's components
-     * according to the rules specified in RFC 2396, section 5.2, step 7.
-     *
+     * @see buildStr()
      * @return string
      */
-    protected function buildStr()
+    protected function buildAuthorityStr()
     {
-        $uri = ($this->scheme != null) ? ($this->scheme . ':') : '';
-        if ($this->isOpaque()) {
-            $uri .= $this->schemeSpecificPart;
+        if ($this->host != null) {
+            $authority = '//';
+            if ($this->userInfo != null) {
+                $authority .= $this->userInfo . '@';
+            }
+            $flag = (strpos($this->host, ':') !== false) && !(substr($this->host, 0,
+                        1) == '[') && !(substr($this->host, -1) == ']');
+            if ($flag) {
+                $authority .= '[';
+            }
+            $authority .= $this->host;
+            if ($flag) {
+                $authority .= ']';
+            }
+            if ($this->port != null) {
+                $authority .= ':' . $this->port;
+            }
+            return $authority;
         } else {
-            if ($this->host != null) {
-                $uri .= '//';
-                if ($this->userInfo != null) {
-                    $uri .= $this->userInfo . '@';
-                }
-                $flag = (strpos($this->host, ':') !== false) && !(substr($this->host, 0,
-                            1) == '[') && !(substr($this->host, -1) == ']');
-                if ($flag) {
-                    $uri .= '[';
-                }
-                $uri .= $this->host;
-                if ($flag) {
-                    $uri .= ']';
-                }
-                if ($this->port != null) {
-                    $uri .= ':' . $this->port;
-                }
-            } else {
-                if ($this->scheme) {
-                    $uri .= '//' . $this->authority;
-                } else {
-                    $uri .= $this->authority;
-                }
-            }
-            if ($this->path !== null) {
-                $uri .= $this->path;
-            }
-            if ($this->query !== null) {
-                $uri .= '?' . $this->query;
-            }
+            return parent::buildAuthorityStr();
         }
-        if ($this->fragment !== null) {
-            $uri .= '#' . $this->fragment;
-        }
-        return $uri;
     }
 
     /**

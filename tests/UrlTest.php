@@ -52,4 +52,18 @@ class UrlTest extends \PHPUnit_Framework_TestCase
 
         $this->assertEquals('http://user:password@example.com/path2?k=v2#fragment2', (string)$resolved);
     }
+
+    public function testAbsString()
+    {
+        $base = new Url('http://user:password@example.com/path/path2?k=v#fragment');
+
+        $this->assertEquals('http://user:password@example.com/path/path2?k=v#fragment', $base->__toString());
+    }
+
+    public function testRelString()
+    {
+        $base = new Url('/path/path2?k=v#fragment');
+
+        $this->assertEquals('/path/path2?k=v#fragment', $base->__toString());
+    }
 }
