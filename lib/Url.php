@@ -121,11 +121,7 @@ class Url extends Uri implements UriInterface
      */
     public function getUserInfo()
     {
-        static $decoded;
-        if ($decoded === null && $this->userInfo !== null) {
-            $decoded = $this->decode($this->userInfo);
-        }
-        return $decoded;
+        return urldecode($this->userInfo);
     }
 
     /**

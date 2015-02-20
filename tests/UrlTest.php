@@ -53,6 +53,24 @@ class UrlTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('http://user:password@example.com/path2?k=v2#fragment2', (string)$resolved);
     }
 
+    public function testResolveRelated()
+    {
+        $base = new Url('http://user:password@example.com/path/path2?k=v#fragment');
+        $uri = new Url('path2?k=v2#fragment2');
+        $resolved = $base->resolve($uri);
+
+        $this->assertEquals('http://user:password@example.com/path/path2?k=v2#fragment2', (string)$resolved);
+    }
+
+    public function testResolveLeadingDot()
+    {
+        $base = new Url('http://user:password@example.com/path/path2/?k=v#fragment');
+        $uri = new Url('./path2?k=v2#fragment2');
+        $resolved = $base->resolve($uri);
+
+        $this->assertEquals('http://user:password@example.com/path/path2/path2?k=v2#fragment2', (string)$resolved);
+    }
+
     public function testResolveFragment()
     {
         $base = new Url('http://user:password@example.com/path/path2?k=v#fragment');

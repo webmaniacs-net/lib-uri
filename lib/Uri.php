@@ -257,25 +257,22 @@ class Uri
     private static function normalizePath($s)
     {
         $i = self::needsNormalization($s);
-        if ($i === false) {
+        if ($i !== false) {
+
+            $ac = str_split($s, 1);
+            $ai = array_fill(0, $i, 0);
+
+            try {
+                self::split($ac, $ai);
+            } catch (\OutOfBoundsException $e) {
+                // something strange here )
+            }
+            self::removeDots($ac, $ai);
+            $i = self::join($ac, $ai);
+            return implode('', array_slice($ac, 0, $i));
+        } else {
             return $s;
         }
-        $ac = array();
-        for ($c = 0, $l = strlen($s); $c < $l; $c++) {
-            $ac[] = substr($s, $c, 1);
-        }
-        $ai = array();
-        for ($c = 0; $c < $i; $c++) {
-            $ai[] = 0;
-        }
-        try {
-            self::split($ac, $ai);
-        } catch (\OutOfBoundsException $e) {
-            // something strange here )
-        }
-        self::removeDots($ac, $ai);
-        $i = self::join($ac, $ai);
-        return implode('', array_slice($ac, 0, $i));
     }
 
     /**
@@ -545,11 +542,7 @@ class Uri
      */
     public function getAuthority()
     {
-        static $decoded;
-        if ($decoded === null && $this->authority !== null) {
-            $decoded = $this->decode($this->authority);
-        }
-        return $decoded;
+        return urldecode($this->authority);
     }
 
     /**
@@ -574,11 +567,7 @@ class Uri
      */
     public function getFragment()
     {
-        static $decoded;
-        if ($decoded === null && $this->fragment !== null) {
-            $decoded = $this->decode($this->fragment);
-        }
-        return $decoded;
+        return urldecode($this->fragment);
     }
 
 
@@ -589,7 +578,7 @@ class Uri
      */
     public function getPath()
     {
-        return $this->decode($this->path);
+        return urldecode($this->path);
     }
 
 
@@ -600,7 +589,7 @@ class Uri
      */
     public function getQuery()
     {
-        return $this->decode($this->query);
+        return urldecode($this->query);
     }
 
 
@@ -652,7 +641,7 @@ class Uri
      */
     public function getSchemeSpecificPart()
     {
-        return $this->decode($this->schemeSpecificPart);
+        return urldecode($this->schemeSpecificPart);
     }
 
 
@@ -677,72 +666,6 @@ class Uri
     public function isOpaque()
     {
         return ($this->path === null);
-    }
-
-    /**
-     *
-     *
-     * @param string $strIn
-     * @return string
-     */
-    protected function decode($strIn)
-    {
-        $strOut = '';
-        $iPos = 0;
-        $len = strlen($strIn);
-        while ($iPos < $len) {
-            $charAt = substr($strIn, $iPos, 1);
-            if ($charAt == '%') {
-                $iPos++;
-                $charAt = substr($strIn, $iPos, 1);
-                if ($charAt == 'u') {
-                    // Unicode character
-                    $iPos++;
-                    $unicodeHexVal = substr($strIn, $iPos, 4);
-                    $unicode = hexdec($unicodeHexVal);
-                    $strOut .= self::code2utf($unicode);
-                    $iPos += 4;
-                } else {
-                    // Escaped ascii character
-                    $hexVal = substr($strIn, $iPos, 2);
-                    if (hexdec($hexVal) > 127) {
-                        // Convert to Unicode
-                        $strOut .= self::code2utf(hexdec($hexVal));
-                    } else {
-                        $strOut .= chr(hexdec($hexVal));
-                    }
-                    $iPos += 2;
-                }
-            } else {
-                $strOut .= $charAt;
-                $iPos++;
-            }
-        }
-        return $strOut;
-    }
-
-    /**
-     * JRE1.5 Port
-     *
-     * @param number $num
-     * @return string
-     * @internal
-     */
-    private static function code2utf($num)
-    {
-        if ($num < 128) {
-            return chr($num);
-        }
-        if ($num < 1024) {
-            return chr(($num >> 6) + 192) . chr(($num & 63) + 128);
-        }
-        if ($num < 32768) {
-            return chr(($num >> 12) + 224) . chr((($num >> 6) & 63) + 128) . chr(($num & 63) + 128);
-        }
-        if ($num < 2097152) {
-            return chr(($num >> 18) + 240) . chr((($num >> 12) & 63) + 128) . chr((($num >> 6) & 63) + 128) . chr(($num & 63) + 128);
-        }
-        return '';
     }
 
     public function getRelated(Uri $baseUrl)
