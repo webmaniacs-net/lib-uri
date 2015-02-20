@@ -668,6 +668,17 @@ class Uri
         return ($this->path === null);
     }
 
+
+    /**
+     * Get new uri instance related to provided base
+     *
+     * Current: http://user:password@example.com/path/path2?k=v#fragment
+     * Base: /path/
+     * Return: path2?k=v#fragment
+     *
+     * @param Uri $baseUrl Base url
+     * @return $this
+     */
     public function getRelated(Uri $baseUrl)
     {
         $path = $baseUrl->getPath();
