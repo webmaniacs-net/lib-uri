@@ -103,6 +103,15 @@ class UriTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('http://user:password@example.com/path/path2?k=v#fragment2', (string)$resolved);
     }
 
+    public function testResolveBaseAbs()
+    {
+        $base = new Uri('/path/path2?k=v#fragment');
+        $uri = new Uri('http://user2:password@example.com/path2?k=v2#fragment2');
+        $resolved = $base->resolve($uri);
+
+        $this->assertEquals('http://user2:password@example.com/path2?k=v2#fragment2', (string)$resolved);
+    }
+
     public function testAbsString()
     {
         $base = new Uri('http://user:password@example.com/path/path2?k=v#fragment');

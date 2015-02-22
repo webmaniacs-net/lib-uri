@@ -14,39 +14,51 @@ namespace wmlib\uri;
  */
 class File extends Uri
 {
+    const OS_UNIX = 'unix';
+    const OS_WINDOWS = 'windows';
+    const OS_MAC = 'mac';
+
 
     /**
-     * Public constructor
-     *
-     * @param string $uri
-     */
-    public function __construct($uri)
-    {
-        // check for file scheme root
-        if (($pos = strpos($uri, ':')) === 1 && strstr(strtoupper(php_uname()), "WIN")) {
-            $uri = 'file:///' . $uri{0} . '%3A' . str_replace(DIRECTORY_SEPARATOR, '/', substr($uri, 2));
-        } else {
-            $uri = 'file://' . $uri;
-        }
-
-        parent::__construct($uri);
-    }
-
-    /**
-     * Returns the content of this URI as a string.
-     *
-     * This URI was created by normalization, resolution, or relativization,
-     * and so a string is constructed from this URI's components
-     * according to the rules specified in RFC 2396, section 5.2, step 7.
+     * Get legacy file string name
      *
      * @return string
      */
-    protected function buildStr()
+    public function getName($os = null)
     {
-        $filename = urldecode($this->getPath());
-        if ($filename{0} === '/' && strstr(strtoupper(php_uname()), "WIN")) {
+        if ($os === null) {
+            if (strstr(strtoupper(php_uname()), "WIN")) $os = self::OS_WINDOWS;
+            elseif (strstr(strtoupper(php_uname()), "MACOS")) $os = self::OS_MAC;
+            else $os = self::OS_UNIX;
+        }
+        $host = $this->getHost();
+
+        $filename = $this->getPath();
+        if ($filename{0} === '/' && $os == self::OS_WINDOWS) {
             $filename = substr($filename, 1);
         }
-        return str_replace('/', DIRECTORY_SEPARATOR, $filename);
+        $filename = str_replace('/', DIRECTORY_SEPARATOR, $filename);
+
+        if ($os == self::OS_WINDOWS)
+        {
+            if ($host && $host !== 'localhost') return sprintf('\\\\%s\%s', $host, $filename);
+            else return $filename;
+        } else {
+            return $this->buildStr();
+        }
+    }
+
+    /**
+     * Get directory file uri
+     *
+     * return File
+     */
+    public function getDirectory()
+    {
+        $dir = clone $this;
+        $dir->path = str_replace(DIRECTORY_SEPARATOR, '/', dirname($this->path));
+        if (!$dir->path) $dir->path = '/';
+
+        return $dir;
     }
 }

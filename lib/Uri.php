@@ -161,55 +161,33 @@ class Uri implements UriInterface
     {
         if ($uri->isAbsolute() || $this->isOpaque()) {
             return clone $uri;
-        }
-        if ($uri->scheme == null && $uri->authority == null && $uri->path == '' && $uri->fragment && !$uri->query) {
-            if ($this->fragment != null && $uri->fragment == $this->fragment) {
-                return clone $this;
-            } else {
-                $class = get_called_class();
-                $uri2 = new $class('');
-                /** @var $uri2 Uri */
-                $uri2->scheme = $this->scheme;
-                $uri2->schemeSpecificPart = $this->schemeSpecificPart;
-                if ($this->authority) {
-                    $uri2->setAuthority($this->authority);
-                }
-
-                $uri2->path = $this->path;
-                $uri2->fragment = $uri->fragment;
-                $uri2->query = $this->query;
-                $uri2->hash = null;
-                return $uri2;
-            }
-        }
-        if ($uri->scheme) {
-            return clone $uri;
-        }
-        $class = get_called_class();
-        $uri2 = new $class('');
-        /** @var $uri2 Uri */
-        $uri2->scheme = $this->scheme;
-        $uri2->query = $uri->query;
-        $uri2->fragment = $uri->fragment;
-        if (!$uri->authority) {
-            $uri2->setAuthority($this->authority);
-
-            if (strlen($uri->path) > 0 && substr($uri->path, 0, 1) == '/') {
-                $uri2->path = $uri->path;
-            } else {
-                $pos = strrpos($this->path, '/');
-                $s2 = ($pos !== false) ? substr($this->path, 0, $pos + 1) : '';
-                if (strlen($uri->path) != 0) {
-                    $s2 .= $uri->path;
-                }
-                $uri2->path = self::normalizePath($s2);
-            }
+        } elseif ($uri->scheme == null && $uri->authority == null && $uri->path == '' && $uri->fragment && !$uri->query) {
+            $uri2 = clone $this;
+            /** @var $uri2 Uri */
+            $uri2->fragment = $uri->fragment;
+            return $uri2;
         } else {
-            $uri2->setAuthority($uri->authority);
-            $uri2->path = $uri->path;
+            $uri2 = clone $uri;
+            /** @var $uri2 Uri */
+            $uri2->scheme = $this->scheme;
+
+            if (!$uri->authority) {
+                $uri2->setAuthority($this->authority);
+
+                if ($this->path && substr($uri->path, 0, 1) == '/') {
+                    $uri2->path = $uri->path;
+                } else {
+                    $pos = strrpos($this->path, '/');
+                    $s2 = ($pos !== false) ? substr($this->path, 0, $pos + 1) : '';
+                    if (strlen($uri->path) != 0) {
+                        $s2 .= $uri->path;
+                    }
+                    $uri2->path = self::normalizePath($s2);
+                }
+            }
+
+            return $uri2;
         }
-        $uri2->hash = null;
-        return $uri2;
     }
 
     /**
@@ -236,21 +214,10 @@ class Uri implements UriInterface
     {
         if ($this->isOpaque() || !$this->path) {
             return clone $this;
-        }
-        $s = self::normalizePath($this->path);
-        if ($s == $this->path) {
-            return clone $this;
         } else {
-            $class = get_called_class();
-            $uri = new $class('');
-            /** @var $uri Uri */
-            $uri->scheme = $this->scheme;
-            $uri->fragment = $this->fragment;
-            $uri->setAuthority($this->authority);
+            $uri = clone $this;
 
-            $uri->path = $s;
-            $uri->query = $this->query;
-            $uri->hash = null;
+            $uri->path = self::normalizePath($this->path);
             return $uri;
         }
     }
@@ -295,9 +262,11 @@ class Uri implements UriInterface
     private static function needsNormalization($s)
     {
         $j = strlen($s) - 1;
-        for ($k = 0; $k <= $j && substr($s, $k, 1) === '/'; $k++) {
-            ;
+
+        for ($k = 0; $k <= $j; $k++) {
+            if (substr($s, $k, 1) !== '/') break;
         }
+
         $flag = ($k > 1) ? false : true;
         $i = 0;
         while ($k <= $j) {
@@ -384,10 +353,7 @@ class Uri implements UriInterface
         for (; $j <= $i && $ac[$j] == '/'; $j++) {
             $ac[$j] = '';
         }
-        do {
-            if ($j > $i) {
-                break;
-            }
+        while ($j <= $i) {
             $ai[$k++] = $j++;
             do {
                 if ($j > $i) {
@@ -398,7 +364,7 @@ class Uri implements UriInterface
             while ($j <= $i && $ac[$j] == '/') {
                 $ac[$j++] = '';
             }
-        } while (true);
+        }
 
         if ($k != count($ai)) {
             throw new \OutOfBoundsException('Internal error');
@@ -427,9 +393,7 @@ class Uri implements UriInterface
                     if (($l == $j) || ($ac[$l + 1] === '')) {
                         $byte0 = 1;
                         break;
-                    }
-
-                    if ($ac[$l + 1] === '.' && $l + 1 == $j || $ac[$l + 2] === '') {
+                    } else if ($ac[$l + 1] === '.' && $l + 1 == $j || $ac[$l + 2] === '') {
                         $byte0 = 2;
                         break;
                     }
@@ -438,20 +402,19 @@ class Uri implements UriInterface
 
             if ($k > $i || $byte0 === 0) {
                 break;
-            }
-            if ($byte0 === 1) {
+            } elseif ($byte0 === 1) {
                 $ai[$k] = -1;
-                continue;
-            }
-            //$i1;
-            for ($i1 = $k - 1; $i1 >= 0 && $ai[$i1] === -1; $i1--) {
-                ;
-            }
-            if ($i1 >= 0) {
-                $j1 = $ai[$i1];
-                if ($ac[$j1] !== '.' || $ac[$j1 + 1] !== '.' || $ac[$j1 + 2] !== '') {
-                    $ai[$k] = -1;
-                    $ai[$i1] = -1;
+            } else {
+                //$i1;
+                for ($i1 = $k - 1; $i1 >= 0; $i1--) {
+                    if ($ai[$i1] !== -1) break;
+                }
+                if ($i1 >= 0) {
+                    $j1 = $ai[$i1];
+                    if ($ac[$j1] !== '.' || $ac[$j1 + 1] !== '.' || $ac[$j1 + 2] !== '') {
+                        $ai[$k] = -1;
+                        $ai[$i1] = -1;
+                    }
                 }
             }
         }
@@ -504,6 +467,11 @@ class Uri implements UriInterface
         return (isset($str[$hash = $this->hashCode()])) ? $str[$hash] : ($str[$hash] = $this->buildStr());
     }
 
+
+    public function __clone()
+    {
+        $this->hash = null;
+    }
 
     /**
      * Returns the content of this URI as a string.
@@ -620,21 +588,6 @@ class Uri implements UriInterface
     public function getScheme()
     {
         return $this->scheme;
-    }
-
-    /**
-     * Set URI scheme part
-     *
-     * @param string $scheme
-     * @return Uri Fluent API support
-     */
-    public function setScheme($scheme)
-    {
-        $this->scheme = $scheme;
-
-        $this->hash = null;
-
-        return $this;
     }
 
     /**
@@ -772,47 +725,6 @@ class Uri implements UriInterface
                 return $this->authority;
             }
         }
-    }
-
-    /**
-     * Push value to query encoded
-     *
-     * @param string $name
-     * @param string $value
-     * @return Uri
-     */
-    public function pushQueryValue($name, $value)
-    {
-        parse_str($this->query, $data);
-        $data[$name] = $value;
-
-        $this->query = http_build_query($data);
-
-        $this->hash = null;
-
-        return $this;
-    }
-
-
-    /**
-     * Push values to query encoded
-     *
-     * @param array $values
-     * @return Uri
-     */
-    public function pushQueryValues(array $values)
-    {
-        if ($this->query !== null) {
-            parse_str($this->query, $data);
-        } else {
-            $data = [];
-        }
-
-        $this->query = http_build_query($values + $data);
-
-        $this->hash = null;
-
-        return $this;
     }
 
     /**
