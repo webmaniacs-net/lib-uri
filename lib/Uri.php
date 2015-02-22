@@ -431,8 +431,8 @@ class Uri implements UriInterface
             if ($j >= $i || $j == 0) {
                 return;
             }
-            for ($k = $ai[$j]; $k < count($ac) && $ac[$k] !== ':' && $ac[$k] !== ''; $k++) {
-                ;
+            for ($k = $ai[$j]; $k < count($ac); $k++) {
+                if ($ac[$k] === ':' || $ac[$k] === '') break;
             }
             if ($k < count($ac) && $ac[$k] !== '') {
                 $ac[0] = '.';

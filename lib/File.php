@@ -41,8 +41,7 @@ class File extends Uri
             $filename = str_replace('/', '\\', $filename);
         }
 
-        if ($os == self::OS_WINDOWS)
-        {
+        if ($os == self::OS_WINDOWS) {
             if ($host && $host !== 'localhost') return sprintf('\\\\%s\%s', $host, $filename);
             else return $filename;
         } else {
