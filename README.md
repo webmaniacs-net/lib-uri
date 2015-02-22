@@ -10,4 +10,4 @@ State
 Usage
 -----
 
-Install the latest version with `composer require webmaniacs.net/lib-controller`
+Install the latest version with `composer require webmaniacs.net/lib-uri`
