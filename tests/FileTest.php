@@ -43,3 +43,4 @@ class FileTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('file://localhost/', (string)$file->getDirectory()->getDirectory()->getDirectory()->getDirectory());
     }
 }
+

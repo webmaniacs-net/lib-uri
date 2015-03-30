@@ -7,6 +7,7 @@ State
 [![Code Coverage](https://scrutinizer-ci.com/g/webmaniacs-net/lib-uri/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/webmaniacs-net/lib-uri/?branch=master)
 [![Build Status](https://scrutinizer-ci.com/g/webmaniacs-net/lib-uri/badges/build.png?b=master)](https://scrutinizer-ci.com/g/webmaniacs-net/lib-uri/build-status/master)
 
+
 Usage
 -----
 
