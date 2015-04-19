@@ -494,11 +494,11 @@ class Uri implements UriInterface
             if ($this->path !== null) {
                 $uri .= $this->path;
             }
-            if ($this->query !== null) {
+            if (!empty($this->query)) {
                 $uri .= '?' . $this->query;
             }
         }
-        if ($this->fragment !== null) {
+        if (!empty($this->fragment)) {
             $uri .= '#' . $this->fragment;
         }
         return $uri;

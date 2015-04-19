@@ -37,7 +37,7 @@ class File extends Uri
         if ($filename{0} === '/' && $os == self::OS_WINDOWS) {
             $filename = substr($filename, 1);
         }
-        if ($os = self::OS_WINDOWS) {
+        if ($os == self::OS_WINDOWS) {
             $filename = str_replace('/', '\\', $filename);
         }
 
